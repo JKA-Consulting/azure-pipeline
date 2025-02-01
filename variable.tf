@@ -1,15 +1,23 @@
-variable "resource_group" {
-  description = "resource group name"
+variable "resource_group_name" {
+  description = "Name of the Azure resource group"
+  type        = string
+  default     = "aks-resource-group"
 }
 
 variable "location" {
-  description = "resource region"
+  description = "Azure region"
+  type        = string
+  default     = "East US"
 }
 
-variable "address_space" {
-  description = ""
+variable "aks_name" {
+  description = "Name of the AKS cluster"
+  type        = string
+  default     = "myAKSCluster"
 }
 
-variable "prefix" {
-  default = "test"
+variable "node_count" {
+  description = "Number of nodes in the default node pool"
+  type        = number
+  default     = 2
 }

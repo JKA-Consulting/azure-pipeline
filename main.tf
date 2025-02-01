@@ -1,42 +1,47 @@
-# resource "azurerm_resource_group" "rg-1" {
-#   name     = var.resource_group
-#   location = var.location
-# }
+provider "azurerm" {
+  # Configuration options
+  features {}
+  # subscription_id = "0cfe2870-d256-4119-b0a3-16293ac11bdc"
+  resource_provider_registrations = "none"
+}
 
-resource "azurerm_virtual_machine" "main" {
-  name                  = "${var.prefix}-vm"
-  location              = var.location
-  resource_group_name   = var.resource_group
-  network_interface_ids = [azurerm_network_interface.main.id]
-  vm_size               = "Standard_DS1_v2"
+resource "azurerm_resource_group" "aks_rg" {
+  name     = var.resource_group_name
+  location = var.location
+}
 
-  # Uncomment this line to delete the OS disk automatically when deleting the VM
-  delete_os_disk_on_termination = true
+resource "azurerm_virtual_network" "aks_vnet" {
+  name                = "aks-vnet"
+  location            = azurerm_resource_group.aks_rg.location
+  resource_group_name = azurerm_resource_group.aks_rg.name
+  address_space       = ["10.0.0.0/16"]
+}
 
-  # Uncomment this line to delete the data disks automatically when deleting the VM
-  delete_data_disks_on_termination = true
+resource "azurerm_subnet" "aks_subnet" {
+  name                 = "aks-subnet"
+  resource_group_name  = azurerm_resource_group.aks_rg.name
+  virtual_network_name = azurerm_virtual_network.aks_vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
 
-  storage_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
-    version   = "latest"
+resource "azurerm_kubernetes_cluster" "aks" {
+  name                = var.aks_name
+  location            = azurerm_resource_group.aks_rg.location
+  resource_group_name = azurerm_resource_group.aks_rg.name
+  dns_prefix          = "aks-cluster"
+
+  default_node_pool {
+    name       = "default"
+    node_count = var.node_count
+    vm_size    = "Standard_DS2_v2"
+    vnet_subnet_id = azurerm_subnet.aks_subnet.id
   }
-  storage_os_disk {
-    name              = "myosdisk1"
-    caching           = "ReadWrite"
-    create_option     = "FromImage"
-    managed_disk_type = "Standard_LRS"
+
+  identity {
+    type = "SystemAssigned"
   }
-  os_profile {
-    computer_name  = "hostname"
-    admin_username = "testadmin"
-    admin_password = "Password1234!"
-  }
-  os_profile_linux_config {
-    disable_password_authentication = false
-  }
+
   tags = {
-    environment = "staging"
+    environment = "Dev"
   }
 }
